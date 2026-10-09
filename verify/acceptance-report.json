@@ -1,15 +1,15 @@
 {
   "probe": "dsh-longhorizon acceptance",
-  "ranAt": "2026-10-09T12:51:27.057Z",
+  "ranAt": "2026-10-09T13:01:27.198Z",
   "node": "v24.21.0",
   "platform": "win32 x64",
   "artifact": {
-    "source": "packed:dsh-longhorizon-0.1.0.tgz",
+    "source": "packed:dsh-longhorizon-0.2.0.tgz",
     "dir": "verify\\pack\\package"
   },
   "selfProof": {
     "artifact_loaded": true,
-    "artifact_source": "packed:dsh-longhorizon-0.1.0.tgz",
+    "artifact_source": "packed:dsh-longhorizon-0.2.0.tgz",
     "artifact_files": [
       "lib/**",
       "cordis.patch.yml",
