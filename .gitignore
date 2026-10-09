@@ -12,6 +12,7 @@ node_modules/
 verify/pack/
 verify/scratch-*/
 verify/fixtures/
+verify/release-staging/
 
 *.log
 .DS_Store
