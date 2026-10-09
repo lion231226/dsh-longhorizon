@@ -79,14 +79,50 @@ ledger, not a side feature.
 | `verified_progress_ledger` | Read back verified progress, rejected claims, and what remains. |
 | `verified_progress_state` | Current run state: verified rounds, pending claims, open items. |
 
+### Declaring what the guard may judge
+
+`verified_progress_verify` takes a `guard_scope`: a workspace-relative path or
+glob whose non-glob prefix becomes the fingerprint root.
+
+```
+verified_progress_verify  claim="the parser handles CRLF input"
+                          guard_scope="src/parser/**"
+```
+
+This is not optional decoration. The guard originally fingerprinted the whole
+workspace root, and in the desktop profile that root is the harness home itself —
+`sessions/**`, `storages/**` and plugin state are written continuously by the
+very session the plugin runs inside. The first two verifications came back
+`workspace mutated (+3 ~5 -3)`, and every changed path belonged to the harness.
+The verifier had written nothing. **A guard that accuses the verifier of the
+host's writes fails every round while looking like a conservative verdict**, so
+the scope is now declared rather than assumed:
+
+- the scope must resolve **inside** the workspace; absolute paths and `..` are
+  rejected instead of silently widened;
+- when the workspace is the harness home, a scope is **required**, and
+  harness-owned roots (`sessions`, `storages`, `logs`, `telemetry`, `cache`,
+  `profiles`, …) are excluded **only at the root**, so a real project containing
+  a nested `sessions/` is still guarded;
+- the result prints `Fingerprinted: <path>`, so a verdict never leaves its scope
+  ambiguous.
+
 ## Install
 
 ```sh
 dsh plugin --profile web add dsh-verified-progress
 ```
 
-Then restart the harness. No build step: the package ships plain ESM and has no
-runtime dependencies.
+Or install a released tarball, which needs no registry:
+
+```sh
+dsh plugin --profile web add \
+  https://github.com/lion231226/dsh-verified-progress/releases/download/v0.3.1/dsh-verified-progress.tgz
+```
+
+Then restart the harness: a plugin that failed to activate is not retried, and
+the module cache holds the previous version until the process restarts. No build
+step — the package ships plain ESM and has no runtime dependencies.
 
 ## Storage
 

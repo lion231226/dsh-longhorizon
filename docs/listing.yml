@@ -13,16 +13,15 @@
 #   - install path exists as a GitHub Release tarball
 #   - repository is at least 1 day old (created 2026-10-09T12:46:20Z)
 #
-# Note for the reviewer: the repository name matches the upstream project name
-# only because the loop design is credited to it. This is NOT a fork of
-# AMAP-ML/LongHorizon-Harness; README.md has a "Why this exists" section
-# describing exactly which design was ported and why the upstream tool cannot
-# run on Windows at all.
+# Note for the reviewer: this is NOT a fork of AMAP-ML/LongHorizon-Harness. The
+# loop design is credited to that project in README.md ("Why this exists"), which
+# also explains why the upstream tool cannot run on Windows at all; the
+# workspace-mutation detection is this plugin's own contribution.
 
 url: https://github.com/lion231226/dsh-verified-progress
 name: lion231226/dsh-verified-progress
 category: workflow
-tarball: https://github.com/lion231226/dsh-verified-progress/releases/download/v0.2.1/dsh-verified-progress.tgz
+tarball: https://github.com/lion231226/dsh-verified-progress/releases/download/v0.3.1/dsh-verified-progress.tgz
 description:
-  en: 'Verified-progress ledger: three tools record a claimed step as progress only after an independent subagent with a fresh context confirms it against the workspace. Files are fingerprinted before and after each verification, so a verifier that changed anything has its verdict voided and the round cannot become progress.'
-  zh: '已验证进度账本：三个工具只在「带全新上下文的独立子代理」对着工作区核实之后，才把某一步声明记为进度。每次验证前后做文件指纹比对，改动过工作区的验证者其裁决一律作废，该轮不得成为进度。'
+  en: 'Verified-progress ledger: three tools record a claimed step as progress only after an independent subagent with a fresh context confirms it against the workspace. The declared scope is fingerprinted before and after each verification, so a verifier that changed anything has its verdict voided and the round cannot become progress.'
+  zh: '已验证进度账本：三个工具只在「带全新上下文的独立子代理」对着工作区核实之后，才把某一步声明记为进度。每次验证前后对声明的范围做文件指纹比对，改动过该范围的验证者其裁决一律作废，该轮不得成为进度。'

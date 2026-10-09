@@ -50,13 +50,35 @@ Contract audit: aligned | unknown | needs_revision | invalid
 | `verified_progress_ledger` | 读回已验证进度、被否的声明、以及剩余项。 |
 | `verified_progress_state` | 当前状态：已验证轮次、待证声明、未完成项。 |
 
+### 必须声明护栏的判定范围
+
+`verified_progress_verify` 接受 `guard_scope`：一个工作区相对路径或 glob，其**非 glob 前缀**成为指纹根。
+
+```
+verified_progress_verify  claim="解析器能处理 CRLF 输入"
+                          guard_scope="src/parser/**"
+```
+
+这不是可选的装饰。护栏最初对整个工作区根做指纹，而在桌面端那个根**就是 harness home 本身**——`sessions/**`、`storages/**` 与插件状态正被「插件所运行的这个会话」持续写入。最初两次验证都返回 `workspace mutated (+3 ~5 -3)`，而每一个变化路径都属于 harness，验证者什么都没写。**把宿主自己的写入算到验证者头上的护栏，会每轮都失败，却看起来像个保守的裁决。** 所以范围改为**由调用方声明**，而不是被假定的：
+
+- 范围必须落在**工作区内**；绝对路径与 `..` 一律拒绝，而不是悄悄放宽；
+- 当工作区就是 harness home 时，**必须**给出范围，且 harness 自有目录（`sessions`、`storages`、`logs`、`telemetry`、`cache`、`profiles` 等）**仅在根层**被排除——所以真实项目里嵌套的同名 `sessions/` 目录仍受护栏保护；
+- 结果里会打印 `Fingerprinted: <路径>`，裁决的覆盖范围不留含糊。
+
 ## 安装
 
 ```sh
 dsh plugin --profile web add dsh-verified-progress
 ```
 
-然后重启 harness。无需构建：包内直接是 ESM 源码，且没有运行时依赖。
+或直接装已发布的 tarball（不需要 registry）：
+
+```sh
+dsh plugin --profile web add \
+  https://github.com/lion231226/dsh-verified-progress/releases/download/v0.3.1/dsh-verified-progress.tgz
+```
+
+然后重启 harness：激活失败的插件不会被重试，且模块缓存会一直持有旧版本直到进程重启。无需构建：包内直接是 ESM 源码，且没有运行时依赖。
 
 ## 存储位置
 

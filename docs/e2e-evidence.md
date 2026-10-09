@@ -1,9 +1,9 @@
 # End-to-end evidence: a real model, a real verifier, a real ledger
 
-This document records one acceptance run on a real harness with a real model, as
+This document records acceptance runs on a real harness with a real model, as
 opposed to the scripted-verifier probe in `tools/acceptance-probe.mjs`. Both are
 needed: the probe proves the harness logic deterministically and carries the
-positive control; this run proves the whole path actually works when a language
+positive control; these runs prove the whole path actually works when a language
 model is the verifier.
 
 ## What was run
@@ -12,7 +12,7 @@ model is the verifier.
 # profile: lh-run (bundles: dsh-base, dsh-headless, dsh-verified-progress)
 # installed the way a user installs it, straight from the published release:
 dsh plugin --profile lh-run add \
-  https://github.com/lion231226/dsh-verified-progress/releases/download/v0.2.1/dsh-verified-progress.tgz
+  https://github.com/lion231226/dsh-verified-progress/releases/download/v0.3.1/dsh-verified-progress.tgz
 
 # workspace: an empty directory plus one fixture file
 echo -n "verified-once" > e2e-target.txt
@@ -22,8 +22,8 @@ dsh --profile lh-run -
 ```
 
 Task: *call `verified_progress_verify` exactly once* with the claim that
-`e2e-target.txt` exists and contains exactly `verified-once`, then print the
-returned summary verbatim.
+`e2e-target.txt` exists and contains exactly `verified-once`, and (from v0.3.1)
+`guard_scope: "**"`, then print the returned summary verbatim.
 
 Resulting ledger, run `s-session-a7f48107-...`:
 
@@ -31,6 +31,38 @@ Resulting ledger, run `s-session-a7f48107-...`:
 verdict=complete  integrity=clean  contract=aligned
 provider=spawn    workspaceMutated=False    evidence=4 items
 ```
+
+## The desktop finding that changed the design
+
+Running the same tool from the desktop profile — where the session's working
+directory is `~/.dsh` — produced this instead, twice in a row:
+
+```
+Round 1: BLOCKED (integrity: violation, contract: unknown)
+Workspace: workspace mutated (+3 ~5 -3)
+```
+
+Every changed path was harness-owned:
+
+```
+sessions/--C-Users-81521-.dsh--/…/session.v4.jsonl.zstd
+storages/session_projcache/sessions/…
+dsh-skill-hub.json
+```
+
+The verifier had written nothing. The guard was fingerprinted over the whole
+workspace root, and in that profile the workspace root is the harness home, which
+the running session writes to on every turn. The verdict was a false accusation —
+and a convincing one, because it arrived in the shape of a conservative verdict.
+
+v0.3.1 fixes this by scoping the fingerprint to what the caller declares
+(`guard_scope`), requiring that scope when the workspace is the harness home,
+excluding harness-owned roots only at the root, and printing
+`Fingerprinted: <path>` in the result so the scope is never implicit. After the
+fix, the same desktop-shaped run returns `COMPLETE … workspace unchanged`.
+
+The acceptance probe gained a fourth scenario for exactly this case: churn
+outside the scope is ignored while a real edit inside it still trips the guard.
 
 ## What the model reported
 
