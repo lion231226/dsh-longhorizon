@@ -24,6 +24,7 @@
 
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { existsSync, lstatSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -52,8 +53,35 @@ let registerToolsUnderTest = null;
  * exactly the set of files that would be published, so a missing `lib/` entry
  * fails the probe instead of passing against the working tree.
  */
+/**
+ * Remove a directory junction/symlink without following it into its target.
+ *
+ * `existsSync` is not enough to detect one: it follows the link, so a junction
+ * whose target has been removed reads as "not there" while still occupying the
+ * name. `lstatSync` sees the name itself.
+ */
+function unlinkDir(linkPath) {
+  let stats;
+  try {
+    stats = lstatSync(linkPath);
+  } catch {
+    return;
+  }
+  if (!stats.isDirectory() && !stats.isSymbolicLink()) return;
+  spawnSync(
+    process.platform === "win32" ? "cmd" : "rm",
+    process.platform === "win32" ? ["/c", "rmdir", linkPath] : ["-rf", linkPath],
+    { encoding: "utf8" },
+  );
+}
+
 async function packArtifact(outDir) {
   const packDir = path.join(outDir, "pack");
+  // Windows refuses to remove a directory that still contains a junction
+  // (ENOTEMPTY), so drop the link from the previous run first. Removing a
+  // junction never touches the directory it points at.
+  unlinkDir(path.join(packDir, "node_modules"));
+  unlinkDir(path.join(packDir, "package", "node_modules"));
   await rm(packDir, { recursive: true, force: true });
   const staging = path.join(packDir, "package");
   await mkdir(staging, { recursive: true });
@@ -94,13 +122,16 @@ async function packArtifact(outDir) {
 
 /**
  * Give the staged package the peer dependencies it resolves at install time.
+ *
  * The artifact ships no node_modules on purpose; resolution has to start from
- * somewhere, so link the repository's — the same shape an installed profile has.
+ * somewhere, so link the repository's own. The link lives **beside** the package
+ * rather than inside it, so cleaning up between runs never has to remove a
+ * directory that contains a junction.
  */
-async function linkPeers(packageDir) {
+async function linkPeers(packDir) {
   const linkTarget = path.join(REPO, "node_modules");
-  const linkPath = path.join(packageDir, "node_modules");
-  await rm(linkPath, { recursive: true, force: true });
+  const linkPath = path.join(packDir, "node_modules");
+  unlinkDir(linkPath);
   const link = spawnSync(
     process.platform === "win32" ? "cmd" : "ln",
     process.platform === "win32" ? ["/c", "mklink", "/J", linkPath, linkTarget] : ["-s", linkTarget, linkPath],
@@ -189,7 +220,7 @@ async function main() {
     artifact = { dir: path.resolve(ARTIFACT), source: "explicit:--artifact", included: [] };
   } else {
     artifact = await packArtifact(OUT_DIR);
-    await linkPeers(artifact.dir);
+    await linkPeers(path.join(OUT_DIR, "pack"));
   }
 
   const toolsModule = await loadTools(artifact.dir);
@@ -295,6 +326,53 @@ async function main() {
     rawEvidence.push({ scenario: "positive-control-mutation-voids-verdict", tool_result: result, ledger: ledgerRaw });
   }
 
+  // ---------------------------------------------------------- scenario 4 ---
+  // The narrowed guard scope must not have cost the detector its teeth: a
+  // change inside the declared scope still trips, while unrelated churn outside
+  // it does not. This is the case a live session reproduces on every turn.
+  {
+    const stateDir = await scratchWithin(scratchRoot, "s4-state-");
+    const workspace = await scratchWithin(scratchRoot, "s4-ws-");
+    await mkdir(path.join(workspace, "src"), { recursive: true });
+    await mkdir(path.join(workspace, "scratch"), { recursive: true });
+    await writeFile(path.join(workspace, "src", "app.js"), "export const a = 1;\n");
+    await writeFile(path.join(workspace, "scratch", "noise.txt"), "before\n");
+
+    const ctx = makeContext({
+      stateDir,
+      script: {
+        reply: ["Status: complete", "Integrity: clean", "Contract audit: aligned"].join("\n"),
+        onVerify: async () => {
+          // Unrelated churn outside the scope, as a live session produces.
+          await writeFile(path.join(workspace, "scratch", "noise.txt"), "after\n");
+          // A real change inside the scope.
+          await writeFile(path.join(workspace, "src", "app.js"), "export const a = 2;\n");
+        },
+      },
+    });
+
+    const result = await ctx.registered
+      .get("verified_progress_verify")
+      .execute({ claim: "app.js exports a = 1", guard_scope: "src/**" }, execFor(workspace));
+    ctx.dispose();
+
+    scenarios.push({
+      name: "scoped-guard-ignores-outside-churn-catches-inside-edits",
+      passed:
+        result.verdict.workspace_mutated === true &&
+        result.verdict.status === "blocked" &&
+        result.verdict.evidence_only === true &&
+        result.verdict.changed_paths.includes("app.js") &&
+        !result.verdict.changed_paths.some((changed) => changed.includes("noise.txt")),
+      observed: {
+        status: result.verdict.status,
+        changed_paths: result.verdict.changed_paths,
+        scope: result.scope,
+      },
+    });
+    rawEvidence.push({ scenario: "scoped-guard-ignores-outside-churn-catches-inside-edits", tool_result: result });
+  }
+
   // ---------------------------------------------------------- scenario 3 ---
   // Recovery: a fresh process reads the ledger written by the previous ones and
   // reports verified progress without replaying the conversation.
@@ -364,12 +442,13 @@ async function main() {
   const positiveControl = scenarios.find(
     (scenario) => scenario.name === "positive-control-mutation-voids-verdict",
   );
+  const expectedScenarioCount = 4;
   const passed =
     selfProof.artifact_loaded &&
     selfProof.artifact_missing_files.length === 0 &&
     selfProof.tool_set_complete &&
-    selfProof.scenarios_run === 3 &&
-    selfProof.scenarios_decided === 3 &&
+    selfProof.scenarios_run === expectedScenarioCount &&
+    selfProof.scenarios_decided === expectedScenarioCount &&
     scenarios.every((scenario) => scenario.passed === true) &&
     positiveControl?.passed === true;
 

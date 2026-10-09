@@ -1,6 +1,6 @@
 {
   "probe": "dsh-verified-progress acceptance",
-  "ranAt": "2026-10-09T13:43:39.375Z",
+  "ranAt": "2026-10-09T13:53:59.040Z",
   "node": "v24.21.0",
   "platform": "win32 x64",
   "artifact": {
@@ -26,8 +26,8 @@
       "verified_progress_verify"
     ],
     "tool_set_complete": true,
-    "scenarios_run": 3,
-    "scenarios_decided": 3,
+    "scenarios_run": 4,
+    "scenarios_decided": 4,
     "verifier_episodes_total": 1
   },
   "positiveControlTripped": true,
@@ -53,6 +53,17 @@
         "changed_paths": [
           "app.js"
         ]
+      }
+    },
+    {
+      "name": "scoped-guard-ignores-outside-churn-catches-inside-edits",
+      "passed": true,
+      "observed": {
+        "status": "blocked",
+        "changed_paths": [
+          "app.js"
+        ],
+        "scope": "C:\\Users\\81521\\.dsh\\projects\\dsh-verified-progress\\verify\\scratch-RBzOSS\\s4-ws-KfFzlQ\\src"
       }
     },
     {

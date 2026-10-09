@@ -1,6 +1,6 @@
 {
   "name": "dsh-verified-progress",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Verified-progress ledger for long-running DSH work: an independent verifier certifies each claimed step, a fingerprint check voids any verdict whose verifier mutated the workspace, and accepted rounds survive a crash, a compaction or a new session.",
   "type": "module",
   "main": "lib/index.js",

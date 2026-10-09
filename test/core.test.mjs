@@ -202,6 +202,112 @@ test("guard: reports an evidence gap instead of a clean bill of health when it c
   );
 });
 
+test("guard: excludeRoots skips harness state at the root but not a same-named nested dir", async (t) => {
+  const dir = await tempDir(t);
+  // Root-level harness churn, which is what a live session produces.
+  await mkdir(path.join(dir, "sessions"), { recursive: true });
+  await writeFile(path.join(dir, "sessions", "session.jsonl"), "log\n");
+  // A real project that happens to contain a same-named directory.
+  await mkdir(path.join(dir, "app", "sessions"), { recursive: true });
+  await writeFile(path.join(dir, "app", "sessions", "data.json"), "{}\n");
+
+  const snapshot = await snapshotWorkspace(dir, { excludeRoots: ["sessions"] });
+  const paths = [...snapshot.records.keys()].sort();
+
+  assert.ok(!paths.some((p) => p.startsWith("sessions/")), "root-level harness state must be skipped");
+  assert.deepEqual(paths, ["app/sessions/data.json"], "a nested same-named directory is still guarded");
+});
+
+test("guard: root-level harness churn is not attributed to the verifier (positive control)", async (t) => {
+  const dir = await tempDir(t);
+  await mkdir(path.join(dir, "projects", "app"), { recursive: true });
+  await writeFile(path.join(dir, "projects", "app", "main.js"), "export const a = 1;\n");
+  await mkdir(path.join(dir, "sessions"), { recursive: true });
+  await writeFile(path.join(dir, "sessions", "s.jsonl"), "first\n");
+
+  // Scope the guard to the project, the way a caller must when the workspace
+  // itself is the harness home.
+  const scoped = path.join(dir, "projects", "app");
+  const before = await snapshotWorkspace(scoped, { excludeRoots: [] });
+
+  // The live session keeps talking…
+  await writeFile(path.join(dir, "sessions", "s.jsonl"), "second\n");
+  // …and nothing inside the scope changed.
+  const after = await snapshotWorkspace(scoped, { excludeRoots: [] });
+  assert.equal(
+    diffSnapshots(before, after).mutated,
+    false,
+    "session churn must not be attributed to the verifier",
+  );
+
+  // Control: a real change inside the scope is still caught.
+  await writeFile(path.join(scoped, "main.js"), "export const a = 2;\n");
+  const diff = diffSnapshots(before, await snapshotWorkspace(scoped, { excludeRoots: [] }));
+  assert.equal(diff.mutated, true, "a real change inside the scope must still be caught");
+  assert.deepEqual(diff.changed, ["main.js"]);
+});
+
+test("scope: harness-home workspaces refuse a whole-tree fingerprint", async () => {
+  const { resolveGuardScope } = await import("../lib/tools.js");
+  const { stateRoot } = await import("../lib/state.js");
+
+  const harnessHome = stateRoot();
+  await assert.rejects(
+    () => resolveGuardScope({ workspace: harnessHome }),
+    /guard_scope is required/,
+    "a whole-tree fingerprint of the harness home must fail closed, not accuse the verifier",
+  );
+
+  // Naming the harness home itself as the scope is the case that needs the
+  // exclusions, because that is the tree the live session writes into.
+  const wholeHome = await resolveGuardScope({ workspace: harnessHome, scope: "./**" });
+  assert.equal(wholeHome.root, harnessHome);
+  assert.ok(wholeHome.excludeRoots.includes("sessions"), "harness-owned roots must be excluded in the home");
+  assert.ok(wholeHome.excludeRoots.includes("storages"));
+  assert.match(wholeHome.note, /harness home/);
+
+  // A specific project under the home is clean by construction: nothing else
+  // writes there, so no exclusions are needed or wanted.
+  const project = await resolveGuardScope({ workspace: harnessHome, scope: "projects/app/**" });
+  assert.equal(project.root, path.join(harnessHome, "projects", "app"));
+  assert.deepEqual(project.excludeRoots, [], "a project directory must not inherit harness-home exclusions");
+
+  const file = await resolveGuardScope({ workspace: harnessHome, scope: "notes.md" });
+  assert.equal(file.root, path.join(harnessHome, "notes.md"));
+});
+
+test("scope: a plain project workspace defaults to the whole tree", async (t) => {
+  const { resolveGuardScope } = await import("../lib/tools.js");
+  const dir = await tempDir(t);
+
+  const whole = await resolveGuardScope({ workspace: dir });
+  assert.equal(whole.root, path.resolve(dir));
+  assert.deepEqual(whole.excludeRoots, []);
+  assert.match(whole.note, /workspace root/);
+
+  const nested = await resolveGuardScope({ workspace: dir, scope: "./src/**" });
+  assert.equal(nested.root, path.join(dir, "src"));
+});
+
+test("scope: escapes are rejected instead of silently widening the guard", async (t) => {
+  const { resolveGuardScope } = await import("../lib/tools.js");
+  const dir = await tempDir(t);
+
+  await assert.rejects(
+    () => resolveGuardScope({ workspace: dir, scope: "../outside" }),
+    /without '\.\.'/,
+  );
+  await assert.rejects(
+    () => resolveGuardScope({ workspace: dir, scope: path.join(os.tmpdir(), "elsewhere") }),
+    /without '\.\.'/,
+    "an absolute scope is rejected too",
+  );
+  await assert.rejects(
+    () => resolveGuardScope({ workspace: path.join(dir, "inner"), scope: "../sibling" }),
+    /without '\.\.'|escapes the workspace/,
+  );
+});
+
 // ----------------------------------------------------------------- ledger ---
 
 test("ledger: appends rounds and rebuilds verified state", async (t) => {
