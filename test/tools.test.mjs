@@ -38,6 +38,7 @@ function harness(script = {}) {
   const registered = new Map();
   const calls = [];
   const workspace = { current: "" };
+  const disposals = { count: 0 };
 
   const subagents = {
     list: () => script.providers ?? ["spawn"],
@@ -48,6 +49,9 @@ function harness(script = {}) {
       const reply = script.reply ?? "Status: complete\nIntegrity: clean\nContract audit: aligned\n";
       return {
         id: "child-1",
+        dispose: async () => {
+          disposals.count += 1;
+        },
         result: Promise.resolve({
           output: [{ type: "text", text: reply }],
           stopReason: script.stopReason ?? "completed",
@@ -71,7 +75,7 @@ function harness(script = {}) {
   };
 
   const dispose = registerTools(ctx, { stateDir: script.stateDir });
-  return { ctx, registered, calls, workspace, dispose };
+  return { ctx, registered, calls, workspace, disposals, dispose };
 }
 
 function execFor(workspace) {
@@ -379,6 +383,34 @@ test("extraction: an absent section yields nothing rather than the whole report"
   const report = "Status: complete\nIntegrity: clean\nContract audit: aligned\n";
   assert.deepEqual(extractSection(report, "missing"), []);
   assert.equal(extractSectionText(report, "task state"), "");
+});
+
+// --------------------------------------------------------------- disposal ---
+
+test("verify: the verifier run is disposed on the success path", async (t) => {
+  const stateDir = await scratch(t);
+  const workspace = await scratch(t);
+  const h = harness({ stateDir });
+  t.after(() => h.dispose());
+
+  await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+
+  // Subagent slots are bounded (maxActiveSubagents is 8-10 by default) and only
+  // come back from dispose(). A leak here would let the plugin work for a few
+  // rounds and then silently stop being able to start any verifier at all.
+  assert.equal(h.disposals.count, 1, "the subagent run must be disposed exactly once");
+});
+
+test("verify: the verifier run is disposed when the verifier fails", async (t) => {
+  const stateDir = await scratch(t);
+  const workspace = await scratch(t);
+  const h = harness({ stateDir, stopReason: "error", reply: "could not check" });
+  t.after(() => h.dispose());
+
+  const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+
+  assert.equal(result.evidence_only, true);
+  assert.equal(h.disposals.count, 1, "a failed episode must still release its slot");
 });
 
 // ------------------------------------------------------------ persistence ---

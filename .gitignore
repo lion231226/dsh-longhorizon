@@ -6,6 +6,13 @@
 # peerDependencies at install time and must never be committed or published.
 node_modules/
 
+# Acceptance-probe scratch: the staged tarball, fixtures and per-run state are
+# rebuilt by `npm run verify`. The report and evidence ARE committed — a verdict
+# nobody can inspect is worth nothing.
+verify/pack/
+verify/scratch-*/
+verify/fixtures/
+
 *.log
 .DS_Store
 Thumbs.db

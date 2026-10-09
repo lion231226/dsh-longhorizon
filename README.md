@@ -137,6 +137,33 @@ POSIX-only primitive is needed. Its workspace-mutation detection is its own
 contribution; the upstream project guards against verifier writes only through
 the same prompt-and-allow-list prevention described above.
 
+## Verifying this plugin
+
+```sh
+npm test      # 37 tests: verdict grammar, guard, ledger, tools, extraction
+npm run verify   # acceptance probe against the packed artifact
+```
+
+`npm run verify` is not a unit test run. It rebuilds the package from the
+`files` list in `package.json`, loads the tool set **out of that artifact**, and
+runs three scenarios against a real file system with a scripted verifier:
+
+| Scenario | What it must show |
+|---|---|
+| `clean-verdict-is-progress` | a clean verdict becomes progress, in one verifier episode |
+| `positive-control-mutation-voids-verdict` | a verifier that edits a file is caught; the round is `blocked` / `violation` and never becomes progress |
+| `ledger-survives-a-fresh-context` | a brand-new context reads verified progress back off disk |
+
+The middle scenario is a **positive control**: if the fingerprint guard ever
+stops noticing a mutation, `positiveControlTripped` turns false and the probe
+exits non-zero, so a broken detector cannot be reported as a pass. The probe also
+proves it ran — it records the artifact it loaded, the tool names it found, and
+that all three scenarios reached a deciding assertion.
+
+The result of the last run is committed: [`verify/acceptance-report.json`](verify/acceptance-report.json)
+and the raw tool results and ledger contents in
+[`verify/acceptance-evidence.json`](verify/acceptance-evidence.json).
+
 ## Requirements and known environment issues
 
 - **A subagent provider that does not inherit the parent context.** The plugin

@@ -57,6 +57,7 @@
   "homepage": "https://github.com/lion231226/dsh-longhorizon",
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
+    "verify": "node tools/acceptance-probe.mjs",
     "check": "node --check lib/index.js && node --check lib/tools.js && node --check lib/verifier.js && node --check lib/state.js && node --check lib/core/ledger.js && node --check lib/core/verdict.js && node --check lib/core/guard.js"
   }
 }

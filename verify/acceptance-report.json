@@ -1,0 +1,72 @@
+{
+  "probe": "dsh-longhorizon acceptance",
+  "ranAt": "2026-10-09T12:51:27.057Z",
+  "node": "v24.21.0",
+  "platform": "win32 x64",
+  "artifact": {
+    "source": "packed:dsh-longhorizon-0.1.0.tgz",
+    "dir": "verify\\pack\\package"
+  },
+  "selfProof": {
+    "artifact_loaded": true,
+    "artifact_source": "packed:dsh-longhorizon-0.1.0.tgz",
+    "artifact_files": [
+      "lib/**",
+      "cordis.patch.yml",
+      "README.md",
+      "README.zh-CN.md",
+      "LICENSE",
+      "package.json",
+      "lib/index.js"
+    ],
+    "artifact_missing_files": [],
+    "tool_names": [
+      "longhorizon_ledger",
+      "longhorizon_state",
+      "longhorizon_verify"
+    ],
+    "tool_set_complete": true,
+    "scenarios_run": 3,
+    "scenarios_decided": 3,
+    "verifier_episodes_total": 1
+  },
+  "positiveControlTripped": true,
+  "scenarios": [
+    {
+      "name": "clean-verdict-is-progress",
+      "passed": true,
+      "observed": {
+        "status": "complete",
+        "evidence_only": false,
+        "verifier_episodes": 1,
+        "ledger_lines": 2
+      }
+    },
+    {
+      "name": "positive-control-mutation-voids-verdict",
+      "passed": true,
+      "observed": {
+        "workspace_mutated": true,
+        "status": "blocked",
+        "integrity": "violation",
+        "evidence_only": true,
+        "changed_paths": [
+          "app.js"
+        ]
+      }
+    },
+    {
+      "name": "ledger-survives-a-fresh-context",
+      "passed": true,
+      "observed": {
+        "verified_rounds": [
+          1
+        ],
+        "rejected_rounds": [],
+        "rounds": 1,
+        "next_round": 2
+      }
+    }
+  ],
+  "passed": true
+}
