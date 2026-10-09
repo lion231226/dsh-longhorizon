@@ -137,6 +137,31 @@ POSIX-only primitive is needed. Its workspace-mutation detection is its own
 contribution; the upstream project guards against verifier writes only through
 the same prompt-and-allow-list prevention described above.
 
+## Requirements and known environment issues
+
+- **A subagent provider that does not inherit the parent context.** The plugin
+  injects `tools` and `subagents`; the `spawn` provider shipped with the web and
+  headless profiles satisfies this. If only the `fork` provider is available, the
+  plugin refuses to certify anything and says so in the tool result rather than
+  silently falling back to a verifier that can see the executor's reasoning.
+- **Windows: a PowerShell that can actually be spawned.** DSH resolves `pwsh`
+  through a fixed candidate list (`@deepseek-ai/dsh-pwsh-local`); a Microsoft
+  Store PowerShell can leave a **zero-byte execution alias** in
+  `%LOCALAPPDATA%\Microsoft\WindowsApps\pwsh.exe`. That alias is a regular file to
+  `lstat`, so it is selected, and Node then fails with
+  `spawn ...\WindowsApps\pwsh.exe ENOENT`. If your harness will not start for that
+  reason, point the resolver at a real binary:
+
+  ```yaml
+  # profile cordis.patch.yml
+  - id: pwsh-local
+    config:
+      pwshPath: 'C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\pwsh.exe'
+  ```
+
+  This is a host resolution issue, not a plugin one, but it is recorded here
+  because it is the first thing that stops a Windows acceptance run.
+
 ## License
 
 MIT
