@@ -1,0 +1,7 @@
+# dsh-longhorizon bundle patch: inserts the plugin row into the profile roster.
+#
+# The row is a bare plugin by package name; the node half (exports ".") runs in
+# the host process and registers the three longhorizon_* tools.
+- insert:
+    - id: longhorizon
+      name: 'dsh-longhorizon'

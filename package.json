@@ -1,0 +1,62 @@
+{
+  "name": "dsh-longhorizon",
+  "version": "0.1.0",
+  "description": "Verified-progress ledger for long-horizon DSH work: an independent verifier certifies each claimed step against the real workspace, a hard invariant keeps unverified claims out of progress, and the accepted rounds survive a crash, a compaction or a new session.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./core": "./lib/core/ledger.js",
+    "./verdict": "./lib/core/verdict.js",
+    "./guard": "./lib/core/guard.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "engines": {
+      "dsh": ">=0.2.0-rc.2"
+    }
+  },
+  "engines": {
+    "node": ">=22",
+    "dsh": ">=0.2.0-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1",
+    "@deepseek-ai/dsh-home-paths": ">=0.2.0-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-subagent": ">=0.2.0-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.1 <0.2.0"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "long-horizon",
+    "verification",
+    "independent-verifier",
+    "verified-progress",
+    "ledger",
+    "agent-loop"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lion231226/dsh-longhorizon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lion231226/dsh-longhorizon/issues"
+  },
+  "homepage": "https://github.com/lion231226/dsh-longhorizon",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "check": "node --check lib/index.js && node --check lib/tools.js && node --check lib/verifier.js && node --check lib/state.js && node --check lib/core/ledger.js && node --check lib/core/verdict.js && node --check lib/core/guard.js"
+  }
+}

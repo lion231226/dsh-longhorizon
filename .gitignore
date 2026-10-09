@@ -1,0 +1,11 @@
+# Test scratch space. The harness may run with a sandbox that denies the
+# platform temp directory, so tests create their fixtures inside the repo.
+.tmp/
+
+# Local development links to the harness runtime packages. These are
+# peerDependencies at install time and must never be committed or published.
+node_modules/
+
+*.log
+.DS_Store
+Thumbs.db
