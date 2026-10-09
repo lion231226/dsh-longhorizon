@@ -1,7 +1,7 @@
 {
   "name": "dsh-longhorizon",
   "version": "0.1.0",
-  "description": "Verified-progress ledger for long-horizon DSH work: an independent verifier certifies each claimed step against the real workspace, a hard invariant keeps unverified claims out of progress, and the accepted rounds survive a crash, a compaction or a new session.",
+  "description": "Verified-progress ledger for long-running DSH work: an independent verifier certifies each claimed step, a fingerprint check voids any verdict whose verifier mutated the workspace, and accepted rounds survive a crash, a compaction or a new session.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

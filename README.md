@@ -1,6 +1,7 @@
 # dsh-longhorizon
 
-**Verified-progress ledger for long-horizon work in DeepSeek Harness.**
+**A verified-progress ledger for long-running DSH work — where a verdict only
+counts if the thing that produced it provably stayed read-only.**
 
 A long-running task fails in a specific way: the agent reports progress it cannot
 prove, the report enters the transcript, and the next turn builds on a claim that
@@ -8,10 +9,10 @@ was never checked. Nothing downstream can tell a verified step from an optimisti
 one, so the error compounds until the final answer is confidently wrong.
 
 This plugin adds the missing check. When the agent claims a step is done, an
-**independent verifier with a fresh context** inspects the real workspace, returns
-a structured verdict, and only then does the step enter a durable ledger. A
-rejected step stays in the ledger as *evidence* — it is never promoted to
-progress.
+**independent verifier with a fresh context** inspects the real workspace and
+returns a structured verdict. Only a clean, aligned, complete verdict enters the
+ledger. A rejected step stays in the ledger as *evidence* — it is never promoted
+to progress.
 
 ```
 claim ──▶ independent verification ──▶ verdict
@@ -21,22 +22,23 @@ claim ──▶ independent verification ──▶ verdict
                                     anything else ──▶ ledger (evidence only)
 ```
 
-## What it does
+## The part that is not a prompt
 
-Three mechanisms, each answering one failure mode.
+Read-only verifiers are usually enforced by asking the verifier to behave and by
+removing the write tools from its tool set. Both are prevention, and both are
+defeated by anything the tool filter does not name.
 
-**1. Independent verification instead of self-report.** The verifier is a
-separate subagent that inherits no conversation context. It reads the files,
-runs the checks, and answers with three control lines:
+This plugin **detects** instead. The workspace is fingerprinted — every file's
+size and mtime, plus a SHA-256 for files under the hash limit — immediately
+before and after each verification episode. If anything changed, the verifier
+mutated the workspace during a read-only audit, so its own findings are voided by
+construction: the round is recorded as `blocked` / `violation` and **can never be
+promoted to progress**, no matter how clean its report reads.
 
-```
-Status: complete | incomplete | blocked
-Integrity: clean | suspect | violation
-Contract audit: aligned | unknown | needs_revision | invalid
-```
-
-**2. A hard downgrade invariant.** A claim cannot be `complete` while the audit
-is dirty:
+That matters because a verifier that writes is not a neutral witness. It can
+create the evidence it then reports, and no amount of prompt discipline or tool
+allow-listing proves it did not. A fingerprint comparison does not have to trust
+the verifier at all — which is why the ledger's admission rule can be absolute:
 
 ```
 integrity === "violation" || contract !== "aligned"  ⟹  status !== "complete"
@@ -47,17 +49,27 @@ control line degrades conservatively — an unstated integrity is read as
 `suspect`, never as `clean` — because a placeholder must never be the thing that
 certifies work as done.
 
-**3. A durable verified-progress ledger.** Accepted steps are appended to
+## What it does
+
+**1. Independent verification instead of self-report.** The verifier is a
+separate subagent that inherits no conversation context. It reads the files and
+answers with three control lines:
+
+```
+Status: complete | incomplete | blocked
+Integrity: clean | suspect | violation
+Contract audit: aligned | unknown | needs_revision | invalid
+```
+
+**2. A durable verified-progress ledger.** Accepted steps are appended to
 `ledger.jsonl` (one JSON object per line, fsync'd per append) with a last-wins
 projection in `state.json`. A crashed process, a compacted context, or a fresh
 session can reopen the run and answer: what is verified, what was rejected and
-why, and what is left.
+why, and what is left. Rejected rounds are preserved as evidence rather than
+discarded, so a later turn can see which claims were already tried and failed.
 
-**Mutation guard.** The verifier is supposed to observe, never to write. The
-workspace is fingerprinted (size + mtime for every file, plus SHA-256 for files
-under the hash limit) immediately before and after each verification. If
-anything changed, the audit's own findings are voided and the round is recorded
-as `blocked` / `violation`.
+**3. Mutation detection.** Described above; it is the admission rule for the
+ledger, not a side feature.
 
 ## Tools
 
@@ -91,11 +103,13 @@ of the working directory, so reopening the same session reopens the same run.
 ## Design limits — read these
 
 - **The verifier is a separate agent, not a separate process.** It cannot see the
-  executor's conversation, which is what makes it independent, but it runs inside
-  the harness and is subject to the same permissions.
+  executor's conversation, which is what makes it independent, and it runs with a
+  read-only tool set. It runs inside the harness and is subject to the same
+  permissions; the fingerprint check is what makes a violation detectable rather
+  than impossible.
 - **The mutation guard is a correctness tool, not a security boundary.** It
-  compares file fingerprints; it does not defend against a local attacker, and it
-  is not a sandbox.
+  compares file fingerprints. It does not defend against a local attacker, it is
+  not a sandbox, and it does not cover paths excluded from the snapshot.
 - **Unhashed large files are reported as an evidence gap.** Files above the hash
   limit are compared by size and mtime, and the snapshot says so rather than
   claiming a comparison it did not make.
@@ -119,8 +133,11 @@ role episode — so on DeepSeek Harness it can only read the final answer of eac
 This plugin takes the parts that carry the value — independent verification, the
 downgrade invariant, the verified-state ledger, the mutation guard — and
 implements them natively in the harness, where the events are available and no
-POSIX-only primitive is needed.
+POSIX-only primitive is needed. Its workspace-mutation detection is its own
+contribution; the upstream project guards against verifier writes only through
+the same prompt-and-allow-list prevention described above.
 
 ## License
 
 MIT
+
