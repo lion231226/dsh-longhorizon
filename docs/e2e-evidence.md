@@ -10,16 +10,27 @@ model is the verifier.
 
 ```
 # profile: lh-run (bundles: dsh-base, dsh-headless, dsh-longhorizon)
-# plugin installed the way a user installs it: dsh plugin --profile lh-run add <tarball>
+# installed the way a user installs it, straight from the published release:
+dsh plugin --profile lh-run add \
+  https://github.com/lion231226/dsh-longhorizon/releases/download/v0.2.1/dsh-longhorizon.tgz
+
 # workspace: an empty directory plus one fixture file
 echo -n "verified-once" > e2e-target.txt
 
-dsh --profile lh-run -            # task text on stdin
+# task text on stdin (argv mangles multi-line task text on Windows)
+dsh --profile lh-run -
 ```
 
 Task: *call `longhorizon_verify` exactly once* with the claim that
 `e2e-target.txt` exists and contains exactly `verified-once`, then print the
 returned summary verbatim.
+
+Resulting ledger, run `s-session-a7f48107-...`:
+
+```
+verdict=complete  integrity=clean  contract=aligned
+provider=spawn    workspaceMutated=False    evidence=4 items
+```
 
 ## What the model reported
 
@@ -31,30 +42,30 @@ Workspace: workspace unchanged
 
 ## What the ledger recorded
 
-`<DSH_HOME>/longhorizon/runs/s-session-419933ee-.../ledger.jsonl`, two records —
-the `verify_started` event and the accepted round. The accepted round carries
-`"verdict":"complete","integrity":"clean","contract":"aligned"`,
+`<DSH_HOME>/longhorizon/runs/<run-id>/ledger.jsonl` holds two records: the
+`verify_started` event and the accepted round. The accepted round carries
+`"verdict":"complete"`, `"integrity":"clean"`, `"contract":"aligned"`,
 `"workspaceMutated":false`, `"changedPaths":[]`, `"evidenceGaps":[]`,
 `"verifierProvider":"spawn"`, `"verifierError":""`.
 
 The verifier (a `spawn` subagent that inherits no conversation context) proved
 the claim by reading the file, grepping `^verified-once$`, globbing for
-duplicates, and counting the characters itself. Its six evidence items are
-recorded verbatim in the ledger, including this one:
+duplicates, and counting the characters itself. One of its evidence items,
+recorded verbatim:
 
 > `grep` for `^verified-once$` … `Found 1 match` / `Line 1: verified-once`,
 > confirming the line's content is exactly `verified-once` with no
 > leading/trailing whitespace or extra characters.
 
-It also recorded one honest limitation rather than rounding it away:
+An earlier run of the same task recorded one honest limitation rather than
+rounding it away, and it is worth quoting because it is the behaviour the design
+is aiming for — the verifier reports what it could establish and names what it
+could not:
 
 > Byte-level state of the file terminator (whether a trailing newline byte
 > follows the 13 text characters) is not observable with read-only,
 > line-oriented tools; this does not change the text content, which is exactly
 > the 13 characters required.
-
-That last item is the behaviour the design is aiming for: the verifier reports
-what it could establish and names what it could not.
 
 ## What this run caught
 
