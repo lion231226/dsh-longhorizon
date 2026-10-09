@@ -9,10 +9,10 @@ model is the verifier.
 ## What was run
 
 ```
-# profile: lh-run (bundles: dsh-base, dsh-headless, dsh-longhorizon)
+# profile: lh-run (bundles: dsh-base, dsh-headless, dsh-verified-progress)
 # installed the way a user installs it, straight from the published release:
 dsh plugin --profile lh-run add \
-  https://github.com/lion231226/dsh-longhorizon/releases/download/v0.2.1/dsh-longhorizon.tgz
+  https://github.com/lion231226/dsh-verified-progress/releases/download/v0.2.1/dsh-verified-progress.tgz
 
 # workspace: an empty directory plus one fixture file
 echo -n "verified-once" > e2e-target.txt
@@ -21,7 +21,7 @@ echo -n "verified-once" > e2e-target.txt
 dsh --profile lh-run -
 ```
 
-Task: *call `longhorizon_verify` exactly once* with the claim that
+Task: *call `verified_progress_verify` exactly once* with the claim that
 `e2e-target.txt` exists and contains exactly `verified-once`, then print the
 returned summary verbatim.
 
@@ -42,7 +42,7 @@ Workspace: workspace unchanged
 
 ## What the ledger recorded
 
-`<DSH_HOME>/longhorizon/runs/<run-id>/ledger.jsonl` holds two records: the
+`<DSH_HOME>/verified-progress/runs/<run-id>/ledger.jsonl` holds two records: the
 `verify_started` event and the accepted round. The accepted round carries
 `"verdict":"complete"`, `"integrity":"clean"`, `"contract":"aligned"`,
 `"workspaceMutated":false`, `"changedPaths":[]`, `"evidenceGaps":[]`,
@@ -101,11 +101,11 @@ which is why the run above could read a verdict instead of a bare summary.
 ## Reproducing
 
 ```sh
-dsh plugin --profile <name> add dsh-longhorizon     # or the release tarball
+dsh plugin --profile <name> add dsh-verified-progress     # or the release tarball
 echo -n "verified-once" > e2e-target.txt
-printf '%s\n' "Call longhorizon_verify exactly once, claiming e2e-target.txt contains exactly verified-once, then print the summary verbatim." \
+printf '%s\n' "Call verified_progress_verify exactly once, claiming e2e-target.txt contains exactly verified-once, then print the summary verbatim." \
   | dsh --profile <name> -
-cat "$DSH_HOME/longhorizon/runs/"*/ledger.jsonl
+cat "$DSH_HOME/verified-progress/runs/"*/ledger.jsonl
 ```
 
 A `COMPLETE` round in the ledger means an independent verifier established the

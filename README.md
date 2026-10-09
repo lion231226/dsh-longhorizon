@@ -1,4 +1,4 @@
-# dsh-longhorizon
+# dsh-verified-progress
 
 **A verified-progress ledger for long-running DSH work — where a verdict only
 counts if the thing that produced it provably stayed read-only.**
@@ -75,14 +75,14 @@ ledger, not a side feature.
 
 | Tool | Purpose |
 |---|---|
-| `longhorizon_verify` | Verify one claimed step against the workspace; records the verdict in the ledger. |
-| `longhorizon_ledger` | Read back verified progress, rejected claims, and what remains. |
-| `longhorizon_state` | Current run state: verified rounds, pending claims, open items. |
+| `verified_progress_verify` | Verify one claimed step against the workspace; records the verdict in the ledger. |
+| `verified_progress_ledger` | Read back verified progress, rejected claims, and what remains. |
+| `verified_progress_state` | Current run state: verified rounds, pending claims, open items. |
 
 ## Install
 
 ```sh
-dsh plugin --profile web add dsh-longhorizon
+dsh plugin --profile web add dsh-verified-progress
 ```
 
 Then restart the harness. No build step: the package ships plain ESM and has no
@@ -93,8 +93,8 @@ runtime dependencies.
 Everything lives under the harness state directory, not in your project:
 
 ```
-<state>/longhorizon/runs/<runId>/ledger.jsonl
-<state>/longhorizon/runs/<runId>/state.json
+<state>/verified-progress/runs/<runId>/ledger.jsonl
+<state>/verified-progress/runs/<runId>/state.json
 ```
 
 `<runId>` is derived from the session id when there is one, otherwise from a hash

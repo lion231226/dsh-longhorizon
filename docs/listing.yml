@@ -1,6 +1,6 @@
 # Submission entry for the awesome-dsh-plugin community list.
 #
-# This file is the exact payload for `data/plugins/lion231226__dsh-longhorizon.yml`
+# This file is the exact payload for `data/plugins/lion231226__dsh-verified-progress.yml`
 # in https://github.com/awesome-dsh-plugin/awesome-dsh-plugin (one file per
 # plugin, one `dsh.bundle`-declaring repo per entry). It is kept here so the
 # entry text stays reviewable next to the code it describes — every claim in
@@ -19,10 +19,10 @@
 # describing exactly which design was ported and why the upstream tool cannot
 # run on Windows at all.
 
-url: https://github.com/lion231226/dsh-longhorizon
-name: lion231226/dsh-longhorizon
+url: https://github.com/lion231226/dsh-verified-progress
+name: lion231226/dsh-verified-progress
 category: workflow
-tarball: https://github.com/lion231226/dsh-longhorizon/releases/download/v0.2.1/dsh-longhorizon.tgz
+tarball: https://github.com/lion231226/dsh-verified-progress/releases/download/v0.2.1/dsh-verified-progress.tgz
 description:
   en: 'Verified-progress ledger: three tools record a claimed step as progress only after an independent subagent with a fresh context confirms it against the workspace. Files are fingerprinted before and after each verification, so a verifier that changed anything has its verdict voided and the round cannot become progress.'
   zh: '已验证进度账本：三个工具只在「带全新上下文的独立子代理」对着工作区核实之后，才把某一步声明记为进度。每次验证前后做文件指纹比对，改动过工作区的验证者其裁决一律作废，该轮不得成为进度。'

@@ -1,6 +1,6 @@
 {
-  "name": "dsh-longhorizon",
-  "version": "0.2.1",
+  "name": "dsh-verified-progress",
+  "version": "0.3.0",
   "description": "Verified-progress ledger for long-running DSH work: an independent verifier certifies each claimed step, a fingerprint check voids any verdict whose verifier mutated the workspace, and accepted rounds survive a crash, a compaction or a new session.",
   "type": "module",
   "main": "lib/index.js",
@@ -49,12 +49,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lion231226/dsh-longhorizon.git"
+    "url": "git+https://github.com/lion231226/dsh-verified-progress.git"
   },
   "bugs": {
-    "url": "https://github.com/lion231226/dsh-longhorizon/issues"
+    "url": "https://github.com/lion231226/dsh-verified-progress/issues"
   },
-  "homepage": "https://github.com/lion231226/dsh-longhorizon",
+  "homepage": "https://github.com/lion231226/dsh-verified-progress",
   "scripts": {
     "test": "node --test \"test/**/*.test.mjs\"",
     "verify": "node tools/acceptance-probe.mjs",

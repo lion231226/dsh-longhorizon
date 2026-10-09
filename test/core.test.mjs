@@ -1,5 +1,5 @@
 /**
- * dsh-longhorizon — core logic tests.
+ * dsh-verified-progress — core logic tests.
  *
  * Run: node --test "test/**\/*.test.mjs"
  *

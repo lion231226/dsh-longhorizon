@@ -1,5 +1,5 @@
 /**
- * dsh-longhorizon — acceptance probe for the SHIPPED artifact.
+ * dsh-verified-progress — acceptance probe for the SHIPPED artifact.
  *
  * This is not another unit test. It runs the code that users actually install
  * (the packed tarball, unpacked) against the three claims the project makes, and
@@ -224,7 +224,7 @@ async function main() {
     });
 
     const result = await ctx.registered
-      .get("longhorizon_verify")
+      .get("verified_progress_verify")
       .execute(
         { claim: "artifact.txt exists", acceptance: "artifact.txt contains done" },
         execFor(workspace),
@@ -269,7 +269,7 @@ async function main() {
     });
 
     const result = await ctx.registered
-      .get("longhorizon_verify")
+      .get("verified_progress_verify")
       .execute({ claim: "app.js exports a = 1" }, execFor(workspace));
     ctx.dispose();
 
@@ -307,7 +307,7 @@ async function main() {
       stateDir,
       script: { reply: "Status: complete\nIntegrity: clean\nContract audit: aligned" },
     });
-    await first.registered.get("longhorizon_verify").execute({ claim: "step one" }, execFor(workspace));
+    await first.registered.get("verified_progress_verify").execute({ claim: "step one" }, execFor(workspace));
     first.dispose();
 
     // A brand new context: no shared memory, only the ledger on disk.
@@ -315,7 +315,7 @@ async function main() {
       stateDir,
       script: { reply: "Status: complete\nIntegrity: clean\nContract audit: aligned" },
     });
-    const readBack = await second.registered.get("longhorizon_ledger").execute({}, execFor(workspace));
+    const readBack = await second.registered.get("verified_progress_ledger").execute({}, execFor(workspace));
     second.dispose();
 
     scenarios.push({
@@ -345,7 +345,7 @@ async function main() {
     return names;
   })())];
 
-  const expectedTools = ["longhorizon_ledger", "longhorizon_state", "longhorizon_verify"];
+  const expectedTools = ["verified_progress_ledger", "verified_progress_state", "verified_progress_verify"];
   const selfProof = {
     artifact_loaded: registeredNames.length > 0,
     artifact_source: artifact.source,
@@ -374,7 +374,7 @@ async function main() {
     positiveControl?.passed === true;
 
   const report = {
-    probe: "dsh-longhorizon acceptance",
+    probe: "dsh-verified-progress acceptance",
     ranAt: new Date().toISOString(),
     node: process.version,
     platform: `${process.platform} ${process.arch}`,

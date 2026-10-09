@@ -1,4 +1,4 @@
-# dsh-longhorizon
+# dsh-verified-progress
 
 **为 DSH 的长任务提供「已验证进度账本」——一个裁决只有在产出它的那一方被证明全程只读时才作数。**
 
@@ -46,14 +46,14 @@ Contract audit: aligned | unknown | needs_revision | invalid
 
 | 工具 | 用途 |
 |---|---|
-| `longhorizon_verify` | 用一个声明的步骤去核对工作区，并把裁决写入账本。 |
-| `longhorizon_ledger` | 读回已验证进度、被否的声明、以及剩余项。 |
-| `longhorizon_state` | 当前状态：已验证轮次、待证声明、未完成项。 |
+| `verified_progress_verify` | 用一个声明的步骤去核对工作区，并把裁决写入账本。 |
+| `verified_progress_ledger` | 读回已验证进度、被否的声明、以及剩余项。 |
+| `verified_progress_state` | 当前状态：已验证轮次、待证声明、未完成项。 |
 
 ## 安装
 
 ```sh
-dsh plugin --profile web add dsh-longhorizon
+dsh plugin --profile web add dsh-verified-progress
 ```
 
 然后重启 harness。无需构建：包内直接是 ESM 源码，且没有运行时依赖。
@@ -63,8 +63,8 @@ dsh plugin --profile web add dsh-longhorizon
 一切都在 harness 的状态目录下，**不在你的项目里**：
 
 ```
-<state>/longhorizon/runs/<runId>/ledger.jsonl
-<state>/longhorizon/runs/<runId>/state.json
+<state>/verified-progress/runs/<runId>/ledger.jsonl
+<state>/verified-progress/runs/<runId>/state.json
 ```
 
 `<runId>` 优先由会话 id 派生，没有会话 id 时用工目录的哈希，所以重开同一个会话就是重开同一次运行。

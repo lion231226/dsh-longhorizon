@@ -1,15 +1,15 @@
 {
-  "probe": "dsh-longhorizon acceptance",
-  "ranAt": "2026-10-09T13:19:48.857Z",
+  "probe": "dsh-verified-progress acceptance",
+  "ranAt": "2026-10-09T13:43:39.375Z",
   "node": "v24.21.0",
   "platform": "win32 x64",
   "artifact": {
-    "source": "packed:dsh-longhorizon-0.2.0.tgz",
+    "source": "packed:dsh-verified-progress-0.3.0.tgz",
     "dir": "verify\\pack\\package"
   },
   "selfProof": {
     "artifact_loaded": true,
-    "artifact_source": "packed:dsh-longhorizon-0.2.0.tgz",
+    "artifact_source": "packed:dsh-verified-progress-0.3.0.tgz",
     "artifact_files": [
       "lib/**",
       "cordis.patch.yml",
@@ -21,9 +21,9 @@
     ],
     "artifact_missing_files": [],
     "tool_names": [
-      "longhorizon_ledger",
-      "longhorizon_state",
-      "longhorizon_verify"
+      "verified_progress_ledger",
+      "verified_progress_state",
+      "verified_progress_verify"
     ],
     "tool_set_complete": true,
     "scenarios_run": 3,

@@ -1,5 +1,5 @@
 /**
- * dsh-longhorizon — tool-level integration tests.
+ * dsh-verified-progress — tool-level integration tests.
  *
  * These run the real `defineTool` definitions against a real (scratch) file
  * system, and replace exactly one thing: the verifier subagent. A scripted
@@ -105,7 +105,7 @@ test("tools: registers the three tools with a canonical output contract", (t) =>
 
   assert.deepEqual(
     [...h.registered.keys()].sort(),
-    ["longhorizon_ledger", "longhorizon_state", "longhorizon_verify"],
+    ["verified_progress_ledger", "verified_progress_state", "verified_progress_verify"],
   );
   for (const [name, definition] of h.registered) {
     assert.equal(definition.name, name);
@@ -144,7 +144,7 @@ test("verify: a clean complete verdict is recorded as progress", async (t) => {
 
   const result = await callTool(
     h.registered,
-    "longhorizon_verify",
+    "verified_progress_verify",
     { claim: "out.txt was written", acceptance: "out.txt contains done" },
     execFor(workspace),
   );
@@ -172,7 +172,7 @@ test("verify: complete + violation is downgraded to evidence only (positive cont
 
   const result = await callTool(
     h.registered,
-    "longhorizon_verify",
+    "verified_progress_verify",
     { claim: "tests pass" },
     execFor(workspace),
   );
@@ -205,7 +205,7 @@ test("verify: a verifier that mutates the workspace voids its own verdict", asyn
 
   const result = await callTool(
     h.registered,
-    "longhorizon_verify",
+    "verified_progress_verify",
     { claim: "app.js is correct" },
     execFor(workspace),
   );
@@ -227,7 +227,7 @@ test("verify: a missing Integrity line cannot yield complete", async (t) => {
   });
   t.after(() => h.dispose());
 
-  const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  const result = await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
   assert.equal(result.verdict.status, "incomplete");
   assert.equal(result.verdict.evidence_only, true);
   assert.equal(result.verdict.integrity, "suspect", "an unstated integrity must never read as clean");
@@ -240,7 +240,7 @@ test("verify: a failed verifier episode records evidence, never progress", async
   const h = harness({ stateDir, stopReason: "error", reply: "I could not check anything." });
   t.after(() => h.dispose());
 
-  const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  const result = await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
   assert.equal(result.verdict.status, "incomplete");
   assert.equal(result.verdict.evidence_only, true);
   assert.match(result.verifier_error ?? "", /stopped with error/);
@@ -254,7 +254,7 @@ test("verify: no isolated provider means the claim cannot be certified", async (
   const h = harness({ stateDir, providers: ["fork"] });
   t.after(() => h.dispose());
 
-  const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  const result = await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
   assert.equal(result.verdict.status, "incomplete");
   assert.equal(result.verdict.evidence_only, true);
   assert.match(result.verifier_error ?? "", /no subagent provider/i);
@@ -266,8 +266,8 @@ test("verify: rounds increment and the ledger accumulates across calls", async (
   const h = harness({ stateDir });
   t.after(() => h.dispose());
 
-  const first = await callTool(h.registered, "longhorizon_verify", { claim: "step 1" }, execFor(workspace));
-  const second = await callTool(h.registered, "longhorizon_verify", { claim: "step 2" }, execFor(workspace));
+  const first = await callTool(h.registered, "verified_progress_verify", { claim: "step 1" }, execFor(workspace));
+  const second = await callTool(h.registered, "verified_progress_verify", { claim: "step 2" }, execFor(workspace));
 
   assert.equal(first.round, 1);
   assert.equal(second.round, 2);
@@ -296,7 +296,7 @@ test("ledger and state tools report verified progress, not claims", async (t) =>
   });
   t.after(() => h.dispose());
 
-  await callTool(h.registered, "longhorizon_verify", { claim: "first attempt" }, execFor(workspace));
+  await callTool(h.registered, "verified_progress_verify", { claim: "first attempt" }, execFor(workspace));
 
   // Swap in a clean verdict for the second round by re-registering with a new script.
   const h2 = harness({
@@ -317,9 +317,9 @@ test("ledger and state tools report verified progress, not claims", async (t) =>
   });
   t.after(() => h2.dispose());
 
-  await callTool(h2.registered, "longhorizon_verify", { claim: "second attempt" }, execFor(workspace));
+  await callTool(h2.registered, "verified_progress_verify", { claim: "second attempt" }, execFor(workspace));
 
-  const ledger = await callTool(h2.registered, "longhorizon_ledger", {}, execFor(workspace));
+  const ledger = await callTool(h2.registered, "verified_progress_ledger", {}, execFor(workspace));
   assert.equal(ledger.rounds, 2);
   assert.deepEqual(ledger.verified_rounds, [2]);
   assert.deepEqual(ledger.rejected_rounds, [1]);
@@ -327,7 +327,7 @@ test("ledger and state tools report verified progress, not claims", async (t) =>
   assert.deepEqual(ledger.open_items, ["write b.js"]);
   assert.equal(ledger.next_round, 3);
 
-  const state = await callTool(h2.registered, "longhorizon_state", {}, execFor(workspace));
+  const state = await callTool(h2.registered, "verified_progress_state", {}, execFor(workspace));
   assert.equal(state.verified, 1);
   assert.equal(state.rejected, 1);
   assert.equal(state.pending_claims.length, 1);
@@ -341,10 +341,10 @@ test("ledger tool can hide rejected rounds", async (t) => {
   const h = harness({ stateDir, reply: "Status: complete\nIntegrity: violation\nContract audit: aligned" });
   t.after(() => h.dispose());
 
-  await callTool(h.registered, "longhorizon_verify", { claim: "bad" }, execFor(workspace));
+  await callTool(h.registered, "verified_progress_verify", { claim: "bad" }, execFor(workspace));
   const ledger = await callTool(
     h.registered,
-    "longhorizon_ledger",
+    "verified_progress_ledger",
     { include_rejected: false },
     execFor(workspace),
   );
@@ -393,7 +393,7 @@ test("verify: the verifier run is disposed on the success path", async (t) => {
   const h = harness({ stateDir });
   t.after(() => h.dispose());
 
-  await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
 
   // Subagent slots are bounded (maxActiveSubagents is 8-10 by default) and only
   // come back from dispose(). A leak here would let the plugin work for a few
@@ -407,7 +407,7 @@ test("verify: the verifier run is disposed when the verifier fails", async (t) =
   const h = harness({ stateDir, stopReason: "error", reply: "could not check" });
   t.after(() => h.dispose());
 
-  const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  const result = await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
 
   assert.equal(result.verdict.evidence_only, true);
   assert.equal(h.disposals.count, 1, "a failed episode must still release its slot");
@@ -426,7 +426,7 @@ test("verifier tool set: every name exists in the host registry, and none can wr
   const KNOWN_GLOBAL_TOOLS = new Set([
     "create_goal", "edit", "exit_plan_mode", "get_goal", "glob", "grep",
     "interrupt_agent", "job_kill", "job_list", "job_output", "list_agents",
-    "longhorizon_ledger", "longhorizon_state", "longhorizon_verify", "pwsh",
+    "verified_progress_ledger", "verified_progress_state", "verified_progress_verify", "pwsh",
     "read", "read_image", "send_message", "skill", "subagent", "subagent_fork",
     "todo_write", "update_goal", "web_fetch", "web_search", "workflow", "write",
   ]);
@@ -452,7 +452,7 @@ test("state.json is written next to the ledger and is readable", async (t) => {
   const h = harness({ stateDir });
   t.after(() => h.dispose());
 
-  await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
+  await callTool(h.registered, "verified_progress_verify", { claim: "x" }, execFor(workspace));
 
   const stateFile = path.join(stateDir, "runs", "s-session-test", "state.json");
   const parsed = JSON.parse(await readFile(stateFile, "utf8"));
