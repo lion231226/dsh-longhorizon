@@ -149,9 +149,9 @@ test("verify: a clean complete verdict is recorded as progress", async (t) => {
     execFor(workspace),
   );
 
-  assert.equal(result.status, "complete");
-  assert.equal(result.evidence_only, false);
-  assert.equal(result.workspace_mutated, false);
+  assert.equal(result.verdict.status, "complete");
+  assert.equal(result.verdict.evidence_only, false);
+  assert.equal(result.verdict.workspace_mutated, false);
   assert.deepEqual(result.evidence, ["out.txt contains 'done'"]);
   assert.equal(result.task_state, "out.txt exists with the expected content.");
 
@@ -177,10 +177,10 @@ test("verify: complete + violation is downgraded to evidence only (positive cont
     execFor(workspace),
   );
 
-  assert.equal(result.status, "incomplete", "a violation must never be recorded as progress");
-  assert.equal(result.evidence_only, true);
-  assert.equal(result.downgraded, true);
-  assert.ok(result.downgrade_reasons.some((reason) => reason.includes("violation")));
+  assert.equal(result.verdict.status, "incomplete", "a violation must never be recorded as progress");
+  assert.equal(result.verdict.evidence_only, true);
+  assert.equal(result.verdict.downgraded, true);
+  assert.ok(result.verdict.downgrade_reasons.some((reason) => reason.includes("violation")));
 
   const ledger = await readLedger({ stateDir, runId: "s-session-test" });
   assert.equal(ledger.verified.length, 0);
@@ -210,11 +210,11 @@ test("verify: a verifier that mutates the workspace voids its own verdict", asyn
     execFor(workspace),
   );
 
-  assert.equal(result.workspace_mutated, true);
-  assert.equal(result.status, "blocked");
-  assert.equal(result.integrity, "violation");
-  assert.equal(result.evidence_only, true);
-  assert.deepEqual(result.changed_paths, ["app.js"]);
+  assert.equal(result.verdict.workspace_mutated, true);
+  assert.equal(result.verdict.status, "blocked");
+  assert.equal(result.verdict.integrity, "violation");
+  assert.equal(result.verdict.evidence_only, true);
+  assert.deepEqual(result.verdict.changed_paths, ["app.js"]);
 });
 
 test("verify: a missing Integrity line cannot yield complete", async (t) => {
@@ -228,9 +228,9 @@ test("verify: a missing Integrity line cannot yield complete", async (t) => {
   t.after(() => h.dispose());
 
   const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
-  assert.equal(result.status, "incomplete");
-  assert.equal(result.evidence_only, true);
-  assert.equal(result.integrity, "suspect", "an unstated integrity must never read as clean");
+  assert.equal(result.verdict.status, "incomplete");
+  assert.equal(result.verdict.evidence_only, true);
+  assert.equal(result.verdict.integrity, "suspect", "an unstated integrity must never read as clean");
 });
 
 test("verify: a failed verifier episode records evidence, never progress", async (t) => {
@@ -241,8 +241,8 @@ test("verify: a failed verifier episode records evidence, never progress", async
   t.after(() => h.dispose());
 
   const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
-  assert.equal(result.status, "incomplete");
-  assert.equal(result.evidence_only, true);
+  assert.equal(result.verdict.status, "incomplete");
+  assert.equal(result.verdict.evidence_only, true);
   assert.match(result.verifier_error ?? "", /stopped with error/);
 });
 
@@ -255,8 +255,8 @@ test("verify: no isolated provider means the claim cannot be certified", async (
   t.after(() => h.dispose());
 
   const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
-  assert.equal(result.status, "incomplete");
-  assert.equal(result.evidence_only, true);
+  assert.equal(result.verdict.status, "incomplete");
+  assert.equal(result.verdict.evidence_only, true);
   assert.match(result.verifier_error ?? "", /no subagent provider/i);
 });
 
@@ -409,11 +409,42 @@ test("verify: the verifier run is disposed when the verifier fails", async (t) =
 
   const result = await callTool(h.registered, "longhorizon_verify", { claim: "x" }, execFor(workspace));
 
-  assert.equal(result.evidence_only, true);
+  assert.equal(result.verdict.evidence_only, true);
   assert.equal(h.disposals.count, 1, "a failed episode must still release its slot");
 });
 
 // ------------------------------------------------------------ persistence ---
+
+test("verifier tool set: every name exists in the host registry, and none can write", async () => {
+  const { VERIFIER_TOOLS } = await import("../lib/verifier.js");
+
+  // Captured from a live harness (`tools.restrict()` prints the registry when it
+  // rejects a name). A stale name here does not fail loudly — it makes
+  // `tools.restrict()` reject the whole restriction, which makes every
+  // verification episode fail, which downgrades every round to `incomplete`.
+  // That is exactly the silent, total failure this project exists to prevent.
+  const KNOWN_GLOBAL_TOOLS = new Set([
+    "create_goal", "edit", "exit_plan_mode", "get_goal", "glob", "grep",
+    "interrupt_agent", "job_kill", "job_list", "job_output", "list_agents",
+    "longhorizon_ledger", "longhorizon_state", "longhorizon_verify", "pwsh",
+    "read", "read_image", "send_message", "skill", "subagent", "subagent_fork",
+    "todo_write", "update_goal", "web_fetch", "web_search", "workflow", "write",
+  ]);
+
+  const unknown = VERIFIER_TOOLS.filter((tool) => !KNOWN_GLOBAL_TOOLS.has(tool));
+  assert.deepEqual(unknown, [], `verifier tool names not in the host registry: ${unknown.join(", ")}`);
+
+  // Structural constraint, not a comment: the verifier observes, it never writes.
+  const FORBIDDEN = ["write", "edit", "pwsh", "subagent", "subagent_fork", "workflow", "skill"];
+  const offenders = VERIFIER_TOOLS.filter((tool) => FORBIDDEN.includes(tool));
+  assert.deepEqual(
+    offenders,
+    [],
+    `write-capable tools must never be granted to the verifier: ${offenders.join(", ")}`,
+  );
+
+  assert.ok(VERIFIER_TOOLS.includes("read"), "the verifier must at least be able to read files");
+});
 
 test("state.json is written next to the ledger and is readable", async (t) => {
   const stateDir = await scratch(t);

@@ -236,13 +236,13 @@ async function main() {
     scenarios.push({
       name: "clean-verdict-is-progress",
       passed:
-        result.status === "complete" &&
-        result.evidence_only === false &&
+        result.verdict.status === "complete" &&
+        result.verdict.evidence_only === false &&
         ctx.childStarts === 1 &&
         ledgerRaw.includes('"verdict":"complete"'),
       observed: {
-        status: result.status,
-        evidence_only: result.evidence_only,
+        status: result.verdict.status,
+        evidence_only: result.verdict.evidence_only,
         verifier_episodes: ctx.childStarts,
         ledger_lines: ledgerRaw.trim().split("\n").length,
       },
@@ -278,18 +278,18 @@ async function main() {
     scenarios.push({
       name: "positive-control-mutation-voids-verdict",
       passed:
-        result.workspace_mutated === true &&
-        result.status === "blocked" &&
-        result.integrity === "violation" &&
-        result.evidence_only === true &&
+        result.verdict.workspace_mutated === true &&
+        result.verdict.status === "blocked" &&
+        result.verdict.integrity === "violation" &&
+        result.verdict.evidence_only === true &&
         ledgerRaw.includes('"verdict":"blocked"') &&
         !ledgerRaw.includes('"verdict":"complete"'),
       observed: {
-        workspace_mutated: result.workspace_mutated,
-        status: result.status,
-        integrity: result.integrity,
-        evidence_only: result.evidence_only,
-        changed_paths: result.changed_paths,
+        workspace_mutated: result.verdict.workspace_mutated,
+        status: result.verdict.status,
+        integrity: result.verdict.integrity,
+        evidence_only: result.verdict.evidence_only,
+        changed_paths: result.verdict.changed_paths,
       },
     });
     rawEvidence.push({ scenario: "positive-control-mutation-voids-verdict", tool_result: result, ledger: ledgerRaw });
