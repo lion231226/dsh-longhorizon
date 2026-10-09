@@ -130,6 +130,42 @@ object with no properties, so the rendered content reached the model but the
 declared fields did not. The output schema now declares its fields explicitly,
 which is why the run above could read a verdict instead of a bare summary.
 
+## The run that closed the loop: desktop, after the fix
+
+Same desktop session (`s-session-4ed45b82-…`), same profile, after restarting the
+harness so the new module loaded. Rounds 1–3 were recorded by v0.3.0; round 4 by
+v0.3.1. The ledger is the whole story, and it reads best in order:
+
+```
+#1 verdict=blocked  integrity=violation  mutated=True   provider=spawn  scope=
+#2 verdict=blocked  integrity=violation  mutated=True   provider=spawn  scope=
+#3 verdict=blocked  integrity=violation  mutated=True   provider=spawn  scope=
+#4 verdict=complete integrity=clean      mutated=False  provider=spawn
+   scope=C:\Users\81521\.dsh\projects\_e2e
+```
+
+Rounds 1–3 carry no scope because the code that recorded them had no notion of
+one — they are the false positives, kept as evidence exactly as the design
+intends. Round 4 is the fix: the same claim, the same session, a declared scope,
+and a clean verdict.
+
+The fixture's modification time is unchanged across all four rounds
+(`2026-10-09 21:44:58`), which is the point: **nothing ever wrote to it.** The
+first three verdicts were accusations with no event behind them.
+
+`state.json` for that run reads:
+
+```
+rounds         : 4
+verifiedRounds : {4}
+rejectedRounds : {1, 2, 3}
+pendingClaims  : 3
+taskStateLen   : 806
+```
+
+A rejected round is neither deleted nor counted as progress — it stays visible as
+an unproven claim, which is what lets a fresh context see what was already tried.
+
 ## Reproducing
 
 ```sh
